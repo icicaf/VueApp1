@@ -17,6 +17,30 @@
 
     pm-header
 
+    pm-Loader(v-show="isLoading")
+
+    section.section(v-show="!isLoading")
+      nav
+        .field.has-addons
+          .control.is-expanded
+            input.input.is-large(
+              type="text",
+              placeholder="Buscar canciones",
+              v-model="searchQuery"
+            )
+          .control
+            a.button.is-info.is-large(@click="search") Buscar
+          .control
+            a.button.is-danger.is-large &times;
+          .control
+            a.button.is-default.is-large {{ searchMessage }}
+
+        .container.results
+          .columns.is-multiline
+            .column.is-one-quarter(v-for="t in tracks")
+              pm-track(:track="t")
+              // {{ t.name }} - {{ t.artists[0].name }}
+
     <div class="columns">
       <div class="column">
         <header class="hero is-primary">
@@ -71,30 +95,8 @@
       </div>
     </div>
 
-    section.section
-      nav
-        .field.has-addons
-          .control.is-expanded
-            input.input.is-large(
-              type="text",
-              placeholder="Buscar canciones",
-              v-model="searchQuery"
-            )
-          .control
-            a.button.is-info.is-large(@click="search") Buscar
-          .control
-            a.button.is-danger.is-large &times;
-          .control
-            a.button.is-default.is-large {{ searchMessage }}
-
-        .container.results
-          .rows
-            .row(v-for="t in tracks")
-              | {{ t.name }} - {{ t.artists[0].name }}
-
     child
 
-    img(src="./assets/logo.png")
     h1 {{ msg }}
     p {{1+1}}
     p {{ person.name.toUpperCase()}}
@@ -129,22 +131,31 @@
 
     p {{ formattedName}}
 
+    button(@click="addPropPerson") CAMBIAR PROPIEDAD
+
+    h1 {{ person }}
+
     pm-footer
 
 </template>
 
 <script>
-import trackService from './services/track'
-import PmFooter from './components/layout/Footer.vue'
-import PmHeader from './components/layout/Header.vue'
+
+import trackService from '@/services/track'
+import PmFooter from '@/components/layout/Footer.vue'
+import PmHeader from '@/components/layout/Header.vue'
+
+import PmTrack from '@/components/Track.vue'
+import PmLoader from '@/components/shared/Loader.vue'
 
 export default {
   name: 'app',
 
-  components: { PmFooter, PmHeader },
+  components: { PmFooter, PmHeader, PmTrack, PmLoader },
 
   data () {
     return {
+
       searchQuery: '',
       tracks: [],
 
@@ -176,16 +187,31 @@ export default {
       newTask: {
         title: '',
         time: 0
-      }
+      },
+
+      isLoading: false // para ver cargando
+
     }
   },
 
   created () {
     this.tasks = JSON.parse(localStorage.getItem('tasks')) || []
     this.tasks.length ? this.notification = false : this.notification = true
+    // ESTO ES UN HOOK https://vuejs.org/v2/guide/instance.html
+    // NO EXISTE EL DOM NO PUEDO ACCEDER A ELEMENTOS
+    // REALIZAR PETICIONES HTTP, OPTIMIZAR EL TIEMPO DE CARGA, PERMITE INTERACTUAR CON UNA API Y CARGAR EN MEMORIA
+  },
+
+  mounted () {
+    // YA PUEDO ACCEDER AL DOOM
+    console.log('MOUNTED...')
   },
 
   methods: {
+
+    addPropPerson () {
+      this.person = Object.assign({}, this.person, { a: 1, b: 2 })
+    },
 
     format () {
       this.formattedName = this.name.split(' ').join('-').toUpperCase()
@@ -194,11 +220,14 @@ export default {
     search () {
       if (!this.searchQuery) { return }
 
+      this.isLoading = true
+
       trackService.search(this.searchQuery)
         .then(res => {
           console.log(res)
           this.tracks = res.tracks.items
-          console.log(this.tracks)
+          this.isLoading = false
+          // console.log(this.tracks)
         })
     },
 
