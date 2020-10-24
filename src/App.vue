@@ -17,8 +17,12 @@
 
     pm-header
 
-    pm-Loader(v-show="isLoading")
+    pm-notification(v-show="showNotification", :typeNotification="hasData > 0 ? 'is-success' : 'is-danger'")
+      p(slot="body")
+       span(v-if="hasData > 0") Se encontraron {{ hasData }} resultados
+       span(v-else) No se encontraron resultados
 
+    pm-Loader(v-show="isLoading")
     section.section(v-show="!isLoading")
       nav
         .field.has-addons
@@ -38,7 +42,11 @@
         .container.results
           .columns.is-multiline
             .column.is-one-quarter(v-for="t in tracks")
-              pm-track(:track="t")
+              pm-track(
+                :class="{ 'is-active': t.id === selectedTrack }",
+                :track="t",
+                @select="setSelectedTrack"
+              )
               // {{ t.name }} - {{ t.artists[0].name }}
 
     <div class="columns">
@@ -142,16 +150,19 @@
 <script>
 
 import trackService from '@/services/track'
+
 import PmFooter from '@/components/layout/Footer.vue'
 import PmHeader from '@/components/layout/Header.vue'
 
 import PmTrack from '@/components/Track.vue'
+
+import PmNotification from '@/components/shared/Notification.vue'
 import PmLoader from '@/components/shared/Loader.vue'
 
 export default {
   name: 'app',
 
-  components: { PmFooter, PmHeader, PmTrack, PmLoader },
+  components: { PmFooter, PmHeader, PmTrack, PmLoader, PmNotification },
 
   data () {
     return {
@@ -189,8 +200,12 @@ export default {
         time: 0
       },
 
-      isLoading: false // para ver cargando
+      isLoading: false, // para ver cargando
 
+      selectedTrack: '',
+
+      showNotification: false,
+      hasData: false
     }
   },
 
@@ -209,6 +224,10 @@ export default {
 
   methods: {
 
+    setSelectedTrack (id) {
+      this.selectedTrack = id
+    },
+
     addPropPerson () {
       this.person = Object.assign({}, this.person, { a: 1, b: 2 })
     },
@@ -224,9 +243,11 @@ export default {
 
       trackService.search(this.searchQuery)
         .then(res => {
-          console.log(res)
+          // console.log(res)
           this.tracks = res.tracks.items
           this.isLoading = false
+          this.showNotification = true
+          this.hasData = res.tracks.total // si es mayor a 0 es success de lo contrario es false
           // console.log(this.tracks)
         })
     },
@@ -270,7 +291,7 @@ export default {
     },
 
     searchMessage () {
-      return `En contrados: ${this.tracks.length}`
+      return `${this.tracks.length} Track`
     },
 
     calculaEdad () {
@@ -287,6 +308,14 @@ export default {
   watch: {
     name (newVal, oldVal) {
       console.log(newVal, oldVal)
+    },
+
+    showNotification () {
+      if (this.showNotification) {
+        setTimeout(() => {
+          this.showNotification = false
+        }, 3000)
+      }
     }
   }
 }
@@ -297,5 +326,9 @@ export default {
 
   .results {
     margin-top: 30px;
+  }
+
+  .is-active {
+    border: 3px #23d160 solid;
   }
 </style>
